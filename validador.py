@@ -34,6 +34,41 @@ from datetime import datetime # Utilizado para trabalhar com datas
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
+def obter_estado(codigo):
+    estados = {
+        '11': 'Rondônia - RO',
+        '12': 'Acre - AC',
+        '13': 'Amazonas - AM',
+        '14': 'Roraima - RR',
+        '15': 'Pará - PA',
+        '16': 'Amapá - AP',
+        '17': 'Tocantins - TO',
+        '21': 'Maranhão - MA',
+        '22': 'Piauí - PI',
+        '23': 'Ceará - CE',
+        '24': 'Rio Grande do Norte - RN',
+        '25': 'Paraíba - PB',
+        '26': 'Pernambuco - PE',
+        '27': 'Alagoas - AL',
+        '28': 'Sergipe - SE',
+        '29': 'Bahia - BA',
+        '31': 'Minas Gerais - MG',
+        '32': 'Espírito Santo - ES',
+        '33': 'Rio de Janeiro - RJ',
+        '35': 'São Paulo - SP',
+        '41': 'Paraná - PR',
+        '42': 'Santa Catarina - SC',
+        '43': 'Rio Grande do Sul - RS',
+        '50': 'Mato Grosso do Sul - MS',
+        '51': 'Mato Grosso - MT',
+        '52': 'Goiás - GO',
+        '53': 'Distrito Federal - DF'
+    }
+    codigo_estado = codigo[:2]
+    if codigo_estado in estados:
+        return estados[codigo_estado]
+    else:
+        return 'Estado não encontrado'
 
 df_cnes_leitos = pd.read_csv('BASE\.BASE_CNES_LEITOS.csv', sep=';', encoding='latin-1', dtype=str) # Importação dados do CNES
 df_cnes_habilitacao = pd.read_csv('BASE\.BASE_CNES_HABILITACAO.csv', sep=';', encoding='latin-1', dtype=str) # Importação CNES Habilitação
@@ -55,9 +90,27 @@ df_planilha_aba1.rename(columns={'PLANO ESTADUAL DE REDUÇÃO DE FILAS DE ESPERA
 df_planilha_aba1.drop(0, inplace=True) # Remove a primeira linha do arquivo
 df_planilha_aba1.drop(1, inplace=True) # Remove a segunda linha do arquivo
 
-quant_fila = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'QUANT_FILA'
+df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].replace(np.nan, 0) # Substitui os valores nulos por 0
+df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].astype(float) # Converte a coluna 'PERC_CONTRATADO' para string
+df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].replace(np.nan, 0) # Substitui os valores nulos por 0
+df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].astype(int) # Converte a coluna 'QUANT_EXEC' em inteiro
+def mensagem(quant_zero):
+    if quant_zero ['PERC_CONTRATADO'] < 4 and quant_zero['PERC_CONTRATADO'] > 0 :
+        return 'ERRO_QUANT'
+    else:
+        return '-'
+
+df_planilha_aba1['PERC_CONTRATADO_O'] = df_planilha_aba1.apply(mensagem, axis=1)
+
+quant_fila = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
 quant_fila = '{0:,}'.format(quant_fila).replace(',','.') #Aqui coloca os pontos
 quant_prodedimentos = df_planilha_aba1['CO_PROCEDIMENTO'].count() # Conta a quantidade de procedimentos
+reducao_max = df_planilha_aba1['PERC_CONTRATADO'].max() # Pega o valor máximo da coluna 'PERC_REDUCAO'
+reducao_max = "{:.0f}".format(reducao_max * 100)  # Formata o valor para 2 casas decimais
+reducao_min = df_planilha_aba1.loc[df_planilha_aba1['PERC_CONTRATADO'] > 0, 'PERC_CONTRATADO'].min()
+reducao_min = "{:.0f}".format(reducao_min * 100)  # Formata o valor para 2 casas decimais
+valor_contratado = df_planilha_aba1['VALOR_TOTAL_CONTR'].min()
+quant_exec = df_planilha_aba1['QUANT_EXEC'].min()
 print(f"[OK] IMPORTAÇÃO DO PLANO  ===================================================>: {time.strftime('%H:%M:%S')}")
 
 # Procedimento requer habilitação
@@ -158,7 +211,10 @@ with pd.ExcelWriter(f'RESULTADOS/{file_nome}_resultado.xlsx', engine='xlsxwriter
     
 print(f"[OK] GERANDO ARQUIVO PARA XLSX  =============================================>: {time.strftime('%H:%M:%S')}")
 
-
+# Iterar sobre as linhas da coluna DESC_GESTOR
+for indice, linha in df_planilha_aba1.iterrows():
+    codigo_gestor = linha['COD_GESTOR']
+    uf = obter_estado(codigo_gestor)
 
 tempo_final = time.time()
 tempo_total = int(tempo_final - tempo_inicial)
@@ -174,37 +230,56 @@ arquivo = open(f'RESULTADOS/{file_nome}_resultado.txt', 'w')  #Criar arquivo txt
 # Informações do arquivo
 print(f"\n=============================================== INFORMAÇÕES DO ARQUIVO ================================================", file=arquivo)
 
-print(f"\n======================================================[ ABA 1 ]========================================================", file=arquivo)
+print(f"\n==================================================[ ABA  PLANEJADO ]===================================================", file=arquivo)
 
 # Verificação de procedimentos inválidos
 if df_planilha_aba1['PROC_VALIDO'].str.contains('NÃO').any():
-    print(f" [ERRO] - ABA 1 - Existem procedimentos na Fila, que não são válidos; ==============> NOME DA COLUNA ['PROC_VALIDO'](V)", file=arquivo)
+    print(f" [ERRO] - Existem procedimentos na Fila, que não são válidos; ======================> NOME DA COLUNA ['PROC_VALIDO'](V)", file=arquivo)
 else:
-    print(f" [OK] - ABA 1 - Não existem procedimentos inválidos; ===============================> NOME DA COLUNA ['PROC_VALIDO'](V)", file=arquivo)
+    print(f" [OK] - Não existem procedimentos inválidos; =======================================> NOME DA COLUNA ['PROC_VALIDO'](V)", file=arquivo)
 
 # Verificação de CNES ativo
 if df_planilha_aba1['CNES_ATIVO'].str.contains('NÃO').any():
-    print(f" [ERRO] - ABA 1 - Existem CNES inativos; ============================================> NOME DA COLUNA ['CNES_ATIVO'](U)", file=arquivo)
+    print(f" [ERRO] - Existem CNES inativos; ====================================================> NOME DA COLUNA ['CNES_ATIVO'](U)", file=arquivo)
 else:
-    print(f" [OK] - ABA 1 - Não existem CNES inativos; ==========================================> NOME DA COLUNA ['CNES_ATIVO'](U)", file=arquivo)
+    print(f" [OK] - Não existem CNES inativos; ==================================================> NOME DA COLUNA ['CNES_ATIVO'](U)", file=arquivo)
 
 # Verificação de CNES habilitado
 if df_planilha_aba1['CNES_HABILITADO'].str.contains('EXIGE_HAB').any():
-    print(f" [ALERTA] - ABA 1 - Existem CNES não habilitados; ==============================> NOME DA COLUNA ['CNES_HABILITADO'](X)", file=arquivo)
+    print(f" [ALERTA] - Existem CNES não habilitados; ======================================> NOME DA COLUNA ['CNES_HABILITADO'](X)", file=arquivo)
 else:
-    print(f" [OK] - ABA 1 - Não existem CNES não habilitados; ==============================> NOME DA COLUNA ['CNES_HABILITADO'](X)", file=arquivo)
+    print(f" [OK] - Não existem CNES não habilitados; ======================================> NOME DA COLUNA ['CNES_HABILITADO'](X)", file=arquivo)
 
 # Verificação de CNES serviço ativo
 if df_planilha_aba1['CNES_SERVICO'].str.contains('EXIGE_SERV').any():
-    print(f" [ALERTA] - ABA 1 - Existem CNES não serviço/class;==================================> NOME DA COLUNA [CNES_SERVICO](Y)", file=arquivo)
+    print(f" [ALERTA] - Existem CNES não serviço/class;==========================================> NOME DA COLUNA [CNES_SERVICO](Y)", file=arquivo)
 else:
-    print(f" [OK] - ABA 1 - Não existem CNES não serviço/class;==================================> NOME DA COLUNA [CNES_SERVICO](Y)", file=arquivo)
+    print(f" [OK] - Não existem CNES não serviço/class;==========================================> NOME DA COLUNA [CNES_SERVICO](Y)", file=arquivo)
 
 # CNES GESTÃO ESTAD_X EXECUÇÃO
 if df_planilha_aba1['GESTAO_VALIDA'].str.contains('NÃO').any():
-    print(f" [ALERTA] - ABA 1 - Existem CNES informado com gestão diferente do CNES-WEB; =====> NOME DA COLUNA ['GESTAO_VALIDA'](Z)", file=arquivo)
+    print(f" [ALERTA] - Existem CNES informado com gestão diferente do CNES-WEB; =============> NOME DA COLUNA ['GESTAO_VALIDA'](Z)", file=arquivo)
 else:
-    print(f" [OK] - ABA 1 - CNES informado com gestão igual ao CNES-WEB; =====================> NOME DA COLUNA ['GESTAO_VALIDA'](Z)", file=arquivo)
+    print(f" [OK] - CNES informado com gestão igual ao CNES-WEB; =============================> NOME DA COLUNA ['GESTAO_VALIDA'](Z)", file=arquivo)
+
+# verificar porcentagem zero
+if valor_contratado == 0:
+    print(f" [ERRO] - NÃO existem valor de contratação, campos zerado; ====================> VERIFICAR COLUNA [VALOR_CONTRATADO](H)", file=arquivo)
+else:
+    print(f" [OK] - Existem valor de contratação conforme programado; =====================> VERIFICAR COLUNA [VALOR_CONTRATADO](H)", file=arquivo)
+
+# verificar execução zero
+if quant_exec == 0:
+    print(f" [ERRO] - NÃO existem quantidade de execução, campo sem quantidade; =================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
+else:
+    print(f" [OK] - Existe quantidade para execução maior que zero; =============================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
+
+# Verificar porcentagem  de procedimentos com quantidade 
+if df_planilha_aba1['PERC_CONTRATADO'].apply(lambda x: x > 4).any():
+    print(f" [ALERTA] - Existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
+else:
+    print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
+
 
 print(f"\n\n=====================================================[ ARQUIVO ]=======================================================", file=arquivo)
 
@@ -214,16 +289,16 @@ print(f" [OK] - Arquivo XLS: '{file_nome} - resultado.xlsx' gerado com sucesso;"
 
 # RESULTADO FINAL
 print(f"\n \n=================================================== RESULTADO FINAL ===================================================  \n", file=arquivo)
-#print(f" UF DO PLANO DE AÇÃO ===========================================> {uf}", file=arquivo)
+print(f" UF DO PLANO DE AÇÃO ===========================================> {uf}", file=arquivo)
 print(f" QUANTIDADE DE SOLICITAÇÕES NA FILA ATÉ DIA 31/12/22 ===========> {quant_fila}", file=arquivo)
 print(f" QTDE PROCEDIMENTO CIRURGICOS INFORMADO NA FILA   ==============> {quant_prodedimentos}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS CNES ================================> {quant_cnes}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO MUNICIPAL =================> {quant_cnes_municipal}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO ESTADUAL ==================> {quant_cnes_estadual}", file=arquivo)
+print(f" PORCETAGEM DE CONTRATAÇÃO (%) - MAX e MIN =====================> {reducao_max}% e {reducao_min}%", file=arquivo)
 
-#print(f" VALOR TOTAL ALOCADO NA PLANILHA ===============================> {valor_total}", file=arquivo)
 
-print(f"\n \n====================================================== VERSÃO 1.0.8 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.1.10 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
