@@ -276,7 +276,7 @@ else:
 
 # Verificar porcentagem  de procedimentos com quantidade 
 if df_planilha_aba1['PERC_CONTRATADO'].apply(lambda x: x > 4).any():
-    print(f" [ALERTA] - Existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
+    print(f" [ERRO] - Existem procedimentos na Fila com mais de 400% de contrato; =======> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 else:
     print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 
