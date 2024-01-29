@@ -104,7 +104,6 @@ df_planilha_aba1['PERC_CONTRATADO_O'] = df_planilha_aba1.apply(mensagem, axis=1)
 
 quant_plano = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
 quant_plano = '{0:,}'.format(quant_plano).replace(',','.') #Aqui coloca os pontos
-quant_prodedimentos = df_planilha_aba1['CO_PROCEDIMENTO'].count() # Conta a quantidade de procedimentos
 reducao_max = df_planilha_aba1['PERC_CONTRATADO'].max() # Pega o valor máximo da coluna 'PERC_REDUCAO'
 reducao_max = "{:.0f}".format(reducao_max * 100)  # Formata o valor para 2 casas decimais
 reducao_min = df_planilha_aba1.loc[df_planilha_aba1['PERC_CONTRATADO'] > 0, 'PERC_CONTRATADO'].min()
@@ -192,7 +191,11 @@ df_planilha_aba2.drop(1, inplace=True) # Remove a segunda linha do arquivo
 df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].replace(np.nan, 0) 
 df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].astype(int) # Converte a coluna 'QUANT_FILA' em inteiro
 quant_fila = df_planilha_aba2['QUANT_EM_FILA'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
-quant_fila = '{0:,}'.format(quant_fila).replace(',','.') #Aqui coloca os pontos
+quant_fila = '{:,.0f}'.format(quant_fila) #Aqui coloca os pontos
+quant_fila = quant_fila.replace(',', '.')  # Substituindo a vírgula pelo ponto
+quant_prodedimentos = df_planilha_aba2['COD_PROCEDIMENTO'].count() # Conta a quantidade de procedimentos
+quant_prodedimentos = '{:,.0f}'.format(quant_prodedimentos) 
+quant_prodedimentos = quant_prodedimentos.replace(',', '.')  # Substituindo a vírgula pelo ponto
 
 # RELATORIO FINAL
 caminho_nova_pasta = "RESULTADOS"
@@ -284,11 +287,11 @@ if quant_exec == 0:
 else:
     print(f" [OK] - Existe quantidade para execução maior que zero; =============================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
 
-# Verificar porcentagem  de procedimentos com quantidade 
-if ((df_planilha_aba1['PERC_CONTRATADO'] >= 0) & (df_planilha_aba1['PERC_CONTRATADO'] <= 4)).any():
-    print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
-else:
+# Verificar porcentagem de procedimentos com quantidade 
+if (df_planilha_aba1['PERC_CONTRATADO'] > 4).any():
     print(f" [ERRO] - Existem procedimentos na Fila com mais de 400% de contrato; =======> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
+else:
+    print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 
 print(f"\n====================================================[ ABA  FILAS ]=====================================================", file=arquivo)
 #Verificar Fila
@@ -315,7 +318,7 @@ print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO ESTADUAL ==================> {quan
 print(f" PORCETAGEM DE CONTRATAÇÃO (%) - MAX e MIN =====================> {reducao_max}% e {reducao_min}%", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.1.11 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.1.13 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
