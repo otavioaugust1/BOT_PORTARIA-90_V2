@@ -102,15 +102,14 @@ def mensagem(quant_zero):
 
 df_planilha_aba1['PERC_CONTRATADO_O'] = df_planilha_aba1.apply(mensagem, axis=1)
 
-quant_fila = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
-quant_fila = '{0:,}'.format(quant_fila).replace(',','.') #Aqui coloca os pontos
+quant_plano = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
+quant_plano = '{0:,}'.format(quant_plano).replace(',','.') #Aqui coloca os pontos
 quant_prodedimentos = df_planilha_aba1['CO_PROCEDIMENTO'].count() # Conta a quantidade de procedimentos
 reducao_max = df_planilha_aba1['PERC_CONTRATADO'].max() # Pega o valor máximo da coluna 'PERC_REDUCAO'
 reducao_max = "{:.0f}".format(reducao_max * 100)  # Formata o valor para 2 casas decimais
 reducao_min = df_planilha_aba1.loc[df_planilha_aba1['PERC_CONTRATADO'] > 0, 'PERC_CONTRATADO'].min()
 reducao_min = "{:.0f}".format(reducao_min * 100)  # Formata o valor para 2 casas decimais
 valor_contratado = df_planilha_aba1['VALOR_TOTAL_CONTR'].min()
-quant_exec = df_planilha_aba1['QUANT_EXEC'].min()
 print(f"[OK] IMPORTAÇÃO DO PLANO  ===================================================>: {time.strftime('%H:%M:%S')}")
 
 # Procedimento requer habilitação
@@ -165,6 +164,7 @@ print(f"[OK] VERIFICADO SERVIÇO  ==============================================
 
 df_planilha_aba1.fillna('-',inplace=True) # LIMPEZA DO NaN para -
 df_planilha_aba1 = df_planilha_aba1.loc[df_planilha_aba1['CO_PROCEDIMENTO'] != '-', :]
+quant_exec = df_planilha_aba1['QUANT_EXEC'].min()
 
 # Verificar tipo de Gestão
 df_planilha_aba1_g = df_planilha_aba1[['CNES','GESTÃO','LINHA']] # Cria um novo dataframe com as colunas 'CNES','COD_PROCEDIMENTO', 
@@ -184,6 +184,15 @@ df_planilha_aba1_g['GESTAO_VALIDA'] =   np.where((df_planilha_aba1_g['GESTÃO'] 
 df_planilha_aba1 = df_planilha_aba1.merge(df_planilha_aba1_g[['LINHA','GESTAO_VALIDA']], on='LINHA', how='left') # Adiciona a coluna 'CNES_HABILITADO' ao dataframe
 print(f"[OK] VERIFICADO GESTÃO VALIDA  ==============================================>: {time.strftime('%H:%M:%S')}")
 
+df_planilha_aba2 = pd.read_excel(df_planilha, sheet_name='FILAS') # Lê o arquivo excel
+df_planilha_aba2.rename(columns={'PLANO ESTADUAL DE REDUÇÃO DE FILAS DE ESPERA EM CIRURGIAS ELETIVAS - FILA DE ESPERA':'COD_PROCEDIMENTO', 'Unnamed: 1':'DESC_PROCEDIMENTO',
+                                 'Unnamed: 2':'QUANT_PROGRAMADA','Unnamed: 3':'QUANT_EM_FILA'},inplace=True)
+df_planilha_aba2.drop(0, inplace=True) # Remove a primeira linha do arquivo
+df_planilha_aba2.drop(1, inplace=True) # Remove a segunda linha do arquivo
+df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].replace(np.nan, 0) 
+df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].astype(int) # Converte a coluna 'QUANT_FILA' em inteiro
+quant_fila = df_planilha_aba2['QUANT_EM_FILA'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
+quant_fila = '{0:,}'.format(quant_fila).replace(',','.') #Aqui coloca os pontos
 
 # RELATORIO FINAL
 caminho_nova_pasta = "RESULTADOS"
@@ -206,6 +215,7 @@ file_nome = df_planilha.split('/')[-1]  # Pega o nome do arquivo
 # Cria um arquivo Excel usando a biblioteca XlsxWriter
 with pd.ExcelWriter(f'RESULTADOS/{file_nome}_resultado.xlsx', engine='xlsxwriter') as writer:
     df_planilha_aba1.to_excel(writer, sheet_name='Aba 1', index=False)
+    df_planilha_aba2.to_excel(writer, sheet_name='Aba 2', index=False)
 
 # Não é necessário chamar writer.save() ou writer.close() quando usando o bloco 'with'
     
@@ -275,11 +285,17 @@ else:
     print(f" [OK] - Existe quantidade para execução maior que zero; =============================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
 
 # Verificar porcentagem  de procedimentos com quantidade 
-if df_planilha_aba1['PERC_CONTRATADO'].apply(lambda x: x > 4).any():
-    print(f" [ERRO] - Existem procedimentos na Fila com mais de 400% de contrato; =======> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
-else:
+if ((df_planilha_aba1['PERC_CONTRATADO'] >= 0) & (df_planilha_aba1['PERC_CONTRATADO'] <= 4)).any():
     print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
+else:
+    print(f" [ERRO] - Existem procedimentos na Fila com mais de 400% de contrato; =======> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 
+print(f"\n====================================================[ ABA  FILAS ]=====================================================", file=arquivo)
+#Verificar Fila
+if ((quant_fila == 0) or (quant_fila < quant_plano)):
+    print(f" [ALERTA]-Quant. de solicitações em Fila zerado ou Fila menor que o Plano de execução; VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
+else:
+    print(f" [OK] - Existe uma Fila de Espera maior que o PLANO de execução; ====================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
 
 print(f"\n\n=====================================================[ ARQUIVO ]=======================================================", file=arquivo)
 
@@ -290,7 +306,8 @@ print(f" [OK] - Arquivo XLS: '{file_nome} - resultado.xlsx' gerado com sucesso;"
 # RESULTADO FINAL
 print(f"\n \n=================================================== RESULTADO FINAL ===================================================  \n", file=arquivo)
 print(f" UF DO PLANO DE AÇÃO ===========================================> {uf}", file=arquivo)
-print(f" QUANTIDADE DE SOLICITAÇÕES NA FILA ATÉ DIA 31/12/22 ===========> {quant_fila}", file=arquivo)
+print(f" QUANTIDADE A SER EXECUTADA, CONFORME PLANO ====================> {quant_plano}", file=arquivo)
+print(f" QUANTIDADE DE SOLICITAÇÕES NA FILA ATÉ DIA 01/12/2023 =========> {quant_fila}", file=arquivo)
 print(f" QTDE PROCEDIMENTO CIRURGICOS INFORMADO NA FILA   ==============> {quant_prodedimentos}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS CNES ================================> {quant_cnes}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO MUNICIPAL =================> {quant_cnes_municipal}", file=arquivo)
@@ -298,7 +315,7 @@ print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO ESTADUAL ==================> {quan
 print(f" PORCETAGEM DE CONTRATAÇÃO (%) - MAX e MIN =====================> {reducao_max}% e {reducao_min}%", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.1.10 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.1.11 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
