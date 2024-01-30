@@ -232,8 +232,8 @@ for indice, linha in df_planilha_aba1.iterrows():
 tempo_final = time.time()
 tempo_total = int(tempo_final - tempo_inicial)
 
-minutos = tempo_total // 60
-segundos = tempo_total % 60
+minutos = (tempo_total // 60)*2
+segundos = (tempo_total % 60)*2
 
 data_hora_atual = datetime.now() # Pega a data e hora atual
 
