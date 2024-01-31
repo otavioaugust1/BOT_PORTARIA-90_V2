@@ -81,7 +81,7 @@ print(f"[OK] IMPORTAÇÃO DO SIGTAP  ===========================================
 
 # Importação da PLANILHA
 ## Analisando e tratamento da PLANILHA aba 1
-df_planilha = glob('PLANILHA\*.xlsm')[0] # Planilha para ser validada
+df_planilha = glob('PLANILHA\*.xls*')[0] # Planilha para ser validada
 df_planilha_aba1 = pd.read_excel(df_planilha, sheet_name='PLANEJADO') # Lê o arquivo excel
 df_planilha_aba1.rename(columns={'PLANO ESTADUAL DE REDUÇÃO DE FILAS DE ESPERA EM CIRURGIAS ELETIVAS - CNES':'CNES','Unnamed: 1':'ESTABELECIMENTO','Unnamed: 2':'CO_PROCEDIMENTO','Unnamed: 3':'DESC_PROCEDIMENTO',
                                  'Unnamed: 4':'INST_REGISTRO','Unnamed: 5':'SEL_REGISTRO','Unnamed: 6':'VALOR_PROC','Unnamed: 7':'VALOR_CONTRATADO','Unnamed: 8':'QUANT_EXEC','Unnamed: 9':'VALOR_TOTAL_CONTR',
@@ -197,6 +197,17 @@ quant_prodedimentos = df_planilha_aba2['COD_PROCEDIMENTO'].count() # Conta a qua
 quant_prodedimentos = '{:,.0f}'.format(quant_prodedimentos) 
 quant_prodedimentos = quant_prodedimentos.replace(',', '.')  # Substituindo a vírgula pelo ponto
 
+df_planilha_aba3 = pd.read_excel(df_planilha, sheet_name='CONSOLIDADO') # Lê o arquivo excel
+df_planilha_aba3.rename(columns={'Distribuição e Cronograma da Execução do Recurso Financeiro':'GESTOR','Unnamed: 1':'DESC_GESTOR','Unnamed: 2':'VALOR_PLANO','Unnamed: 3':'VALOR_PACTUADO'},inplace=True )
+df_planilha_aba3.drop(0, inplace=True) # Remove a primeira linha do arquivo
+df_planilha_aba3.drop(1, inplace=True) # Remove a segunda linha do arquivo
+df_planilha_aba3.drop(df_planilha_aba3.tail(1).index, inplace=True)
+df_planilha_aba3['VALOR_PACTUADO'] = df_planilha_aba3['VALOR_PACTUADO'].replace(np.nan, 0) # Substitui os valores nulos por 0
+soma_valor_plano = df_planilha_aba3['VALOR_PLANO'].sum()
+soma_valor_plano_formatado = '{:,.2f}'.format(soma_valor_plano).replace(',', 'X').replace('.', ',').replace('X', '.')
+soma_valor_pactuado = df_planilha_aba3['VALOR_PACTUADO'].sum()
+soma_valor_pactuado_formatado = '{:,.2f}'.format(soma_valor_pactuado).replace(',', 'X').replace('.', ',').replace('X', '.')
+
 # RELATORIO FINAL
 caminho_nova_pasta = "RESULTADOS"
 
@@ -219,6 +230,7 @@ file_nome = df_planilha.split('/')[-1]  # Pega o nome do arquivo
 with pd.ExcelWriter(f'RESULTADOS/{file_nome}_resultado.xlsx', engine='xlsxwriter') as writer:
     df_planilha_aba1.to_excel(writer, sheet_name='Aba 1', index=False)
     df_planilha_aba2.to_excel(writer, sheet_name='Aba 2', index=False)
+    df_planilha_aba3.to_excel(writer, sheet_name='Aba 3', index=False)
 
 # Não é necessário chamar writer.save() ou writer.close() quando usando o bloco 'with'
     
@@ -300,9 +312,15 @@ if ((quant_fila == 0) or (quant_fila < quant_plano)):
 else:
     print(f" [OK] - Existe uma Fila de Espera maior que o PLANO de execução; ====================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
 
+print(f"\n=================================================[ ABA  CONSOLIDADO ]==================================================", file=arquivo)
+if (soma_valor_pactuado == 0):
+    print(f" [ALERTA] - Valor pactuado na CIB não informando no Plano; ==========================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
+else:
+    print(f" [OK] - Valor pactuado na CIB informando no Plano; ==================================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
+
 print(f"\n\n=====================================================[ ARQUIVO ]=======================================================", file=arquivo)
 
-print(f" [OK] - Arquivo enviado pelo gestor: '{file_nome}';", file=arquivo)
+print(f" [OK] - Arquivo enviado pelo gestor: '{file_nome};", file=arquivo)
 print(f" [OK] - Arquivo TXT: '{file_nome} - resultado.txt'  gerado com sucesso;", file=arquivo)
 print(f" [OK] - Arquivo XLS: '{file_nome} - resultado.xlsx' gerado com sucesso;", file=arquivo)
 
@@ -316,9 +334,11 @@ print(f" TOTAL DE ESTABELECIMENTOS CNES ================================> {quant
 print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO MUNICIPAL =================> {quant_cnes_municipal}", file=arquivo)
 print(f" TOTAL DE ESTABELECIMENTOS EM GESTÃO ESTADUAL ==================> {quant_cnes_estadual}", file=arquivo)
 print(f" PORCETAGEM DE CONTRATAÇÃO (%) - MAX e MIN =====================> {reducao_max}% e {reducao_min}%", file=arquivo)
+print(f" VALOR TOTAL DE EXECUÇÃO DO PLANO ==============================> R$ {soma_valor_plano_formatado}", file=arquivo)
+print(f" VALOR TOTAL PACTUADO NA CIB e INFORMANDO NO PLANO =============> R$ {soma_valor_pactuado_formatado}", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.1.13 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.2.13 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
