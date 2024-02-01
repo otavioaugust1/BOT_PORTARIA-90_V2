@@ -186,10 +186,14 @@ print(f"[OK] VERIFICADO GESTÃO VALIDA  ========================================
 df_planilha_aba2 = pd.read_excel(df_planilha, sheet_name='FILAS') # Lê o arquivo excel
 df_planilha_aba2.rename(columns={'PLANO ESTADUAL DE REDUÇÃO DE FILAS DE ESPERA EM CIRURGIAS ELETIVAS - FILA DE ESPERA':'COD_PROCEDIMENTO', 'Unnamed: 1':'DESC_PROCEDIMENTO',
                                  'Unnamed: 2':'QUANT_PROGRAMADA','Unnamed: 3':'QUANT_EM_FILA'},inplace=True)
-df_planilha_aba2.drop(0, inplace=True) # Remove a primeira linha do arquivo
-df_planilha_aba2.drop(1, inplace=True) # Remove a segunda linha do arquivo
-df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].replace(np.nan, 0) 
-df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].astype(int) # Converte a coluna 'QUANT_FILA' em inteiro
+df_planilha_aba2.drop([0, 1], inplace=True) # removendo linhas indesejadas
+df_planilha_aba2['QUANT_EM_FILA'].fillna(0, inplace=True) #remover a ultima linhas indesejadas
+df_planilha_aba2['QUANT_EM_FILA'] = pd.to_numeric(df_planilha_aba2['QUANT_EM_FILA'], errors='coerce') # Converte a coluna 'QUANT_EM_FILA' para numérica, tratando erros como NaN
+df_planilha_aba2['ERRO_DIGITAÇÃO'] = np.where(df_planilha_aba2['QUANT_EM_FILA'].isna(), 'SIM', '-') # Cria a coluna 'ERRO_DIGITAÇÃO' e define 'SIM' para linhas com erros
+df_planilha_aba2['QUANT_EM_FILA'].replace([np.inf, -np.inf], np.nan, inplace=True) # Remove valores não finitos (NaN ou inf)
+df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].replace(np.nan, 0) # Substitui os valores nulos por 0
+df_planilha_aba2['QUANT_EM_FILA'] = df_planilha_aba2['QUANT_EM_FILA'].astype(int) # Preenche valores NaN na coluna 'QUANT_EM_FILA' com zero e converte para inteiros
+
 quant_fila = df_planilha_aba2['QUANT_EM_FILA'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
 quant_fila = '{:,.0f}'.format(quant_fila) #Aqui coloca os pontos
 quant_fila = quant_fila.replace(',', '.')  # Substituindo a vírgula pelo ponto
@@ -312,6 +316,12 @@ if ((quant_fila == 0) or (quant_fila < quant_plano)):
 else:
     print(f" [OK] - Existe uma Fila de Espera maior que o PLANO de execução; ====================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
 
+#erro de digitação
+if df_planilha_aba2['ERRO_DIGITAÇÃO'].str.contains('SIM').any():
+    print(f" [ERRO] - Na Coluna'QUANT. DE SOLICITAÇÕES NA FILA' não numero, erro digitação; VERIFICAR NA COLUNA [ERRO_DIGITAÇÃO](E)", file=arquivo)    
+else:
+    print(f"[OK] - Coluna de 'QUANT. DE SOLICITAÇÕES NA FILA'; ===========================> VERIFICAR NA COLUNA [ERRO_DIGITAÇÃO](E)", file=arquivo)
+
 print(f"\n=================================================[ ABA  CONSOLIDADO ]==================================================", file=arquivo)
 if (soma_valor_pactuado == 0):
     print(f" [ALERTA] - Valor pactuado na CIB não informando no Plano; ==========================> VERIFICAR COLUNA [QUANT_EXEC](D)", file=arquivo)
@@ -338,7 +348,7 @@ print(f" VALOR TOTAL DE EXECUÇÃO DO PLANO ==============================> R$ {
 print(f" VALOR TOTAL PACTUADO NA CIB e INFORMANDO NO PLANO =============> R$ {soma_valor_pactuado_formatado}", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.2.13 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.2.14 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
