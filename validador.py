@@ -2,7 +2,7 @@
 ## Autor: Otávio Augusto dos Santos
 ## Data: 2024-01-13
 
-## Versão: 0.0.1
+## Versão: 1.2.14
 ## Descrição: Bot de analise de dados na planilha de proposto (PLANO)
 ## Entrada: Planilha de proposto (PLANO)
 ## Saída: Relatório de inconsistências
@@ -320,7 +320,7 @@ else:
 if df_planilha_aba2['ERRO_DIGITAÇÃO'].str.contains('SIM').any():
     print(f" [ERRO] - Na Coluna'QUANT. DE SOLICITAÇÕES NA FILA' não numero, erro digitação; VERIFICAR NA COLUNA [ERRO_DIGITAÇÃO](E)", file=arquivo)    
 else:
-    print(f"[OK] - Coluna de 'QUANT. DE SOLICITAÇÕES NA FILA'; ===========================> VERIFICAR NA COLUNA [ERRO_DIGITAÇÃO](E)", file=arquivo)
+    print(f" [OK] - Coluna de 'QUANT. DE SOLICITAÇÕES NA FILA'; ==========================> VERIFICAR NA COLUNA [ERRO_DIGITAÇÃO](E)", file=arquivo)
 
 print(f"\n=================================================[ ABA  CONSOLIDADO ]==================================================", file=arquivo)
 if (soma_valor_pactuado == 0):
