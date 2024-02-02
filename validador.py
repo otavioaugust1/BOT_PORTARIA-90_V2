@@ -94,13 +94,12 @@ df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].replac
 df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].astype(float) # Converte a coluna 'PERC_CONTRATADO' para string
 df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].replace(np.nan, 0) # Substitui os valores nulos por 0
 df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].astype(int) # Converte a coluna 'QUANT_EXEC' em inteiro
-def mensagem(quant_zero):
-    if quant_zero ['PERC_CONTRATADO'] < 4 and quant_zero['PERC_CONTRATADO'] > 0 :
-        return 'ERRO_QUANT'
-    else:
-        return '-'
 
-df_planilha_aba1['PERC_CONTRATADO_O'] = df_planilha_aba1.apply(mensagem, axis=1)
+for index, row in df_planilha_aba1.iterrows():
+    if row['PERC_CONTRATADO'] > 4 or row['PERC_CONTRATADO'] < 0:
+        df_planilha_aba1.at[index, 'PERC_CONTRATADO_O'] = 'ERRO_QUANT'
+    else:
+        df_planilha_aba1.at[index, 'PERC_CONTRATADO_O'] = '-'
 
 quant_plano = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
 quant_plano = '{0:,}'.format(quant_plano).replace(',','.') #Aqui coloca os pontos
@@ -293,18 +292,18 @@ else:
 
 # verificar porcentagem zero
 if valor_contratado == 0:
-    print(f" [ERRO] - NÃO existem valor de contratação, campos zerado; ====================> VERIFICAR COLUNA [VALOR_CONTRATADO](H)", file=arquivo)
+    print(f" [ERRO] - NÃO existem valor de contratação, campos zerado; ====================> VERIFICAR COLUNA [VALOR_CONTRATADO](I)", file=arquivo)
 else:
-    print(f" [OK] - Existem valor de contratação conforme programado; =====================> VERIFICAR COLUNA [VALOR_CONTRATADO](H)", file=arquivo)
+    print(f" [OK] - Existem valor de contratação conforme programado; =====================> VERIFICAR COLUNA [VALOR_CONTRATADO](I)", file=arquivo)
 
 # verificar execução zero
 if quant_exec == 0:
-    print(f" [ERRO] - NÃO existem quantidade de execução, campo sem quantidade; =================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
+    print(f" [ERRO] - NÃO existem quantidade de execução, campo sem quantidade; =================> VERIFICAR COLUNA [QUANT_EXEC](J)", file=arquivo)
 else:
-    print(f" [OK] - Existe quantidade para execução maior que zero; =============================> VERIFICAR COLUNA [QUANT_EXEC](I)", file=arquivo)
+    print(f" [OK] - Existe quantidade para execução maior que zero; =============================> VERIFICAR COLUNA [QUANT_EXEC](J)", file=arquivo)
 
 # Verificar porcentagem de procedimentos com quantidade 
-if (df_planilha_aba1['PERC_CONTRATADO'] > 4).any():
+if df_planilha_aba1['PERC_CONTRATADO_O'].str.contains('ERRO_QUANT').any():
     print(f" [ERRO] - Existem procedimentos na Fila com mais de 400% de contrato; =======> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 else:
     print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
@@ -348,7 +347,7 @@ print(f" VALOR TOTAL DE EXECUÇÃO DO PLANO ==============================> R$ {
 print(f" VALOR TOTAL PACTUADO NA CIB e INFORMANDO NO PLANO =============> R$ {soma_valor_pactuado_formatado}", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.2.14 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.2.15 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
