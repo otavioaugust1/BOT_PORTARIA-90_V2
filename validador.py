@@ -90,16 +90,27 @@ df_planilha_aba1.rename(columns={'PLANO ESTADUAL DE REDUÇÃO DE FILAS DE ESPERA
 df_planilha_aba1.drop(0, inplace=True) # Remove a primeira linha do arquivo
 df_planilha_aba1.drop(1, inplace=True) # Remove a segunda linha do arquivo
 
-df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].replace(np.nan, 0) # Substitui os valores nulos por 0
-df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].astype(float) # Converte a coluna 'PERC_CONTRATADO' para string
+
+df_planilha_aba1['VALOR_PROC'] = df_planilha_aba1['VALOR_PROC'].astype(float) # Converte a coluna 'VALOR_PRONOTA' em float
+df_planilha_aba1['VALOR_PROC'] = df_planilha_aba1['VALOR_PROC'].round(2)  # Arredonda os valores para duas casas decimais
+
+df_planilha_aba1['VALOR_CONTRATADO'] = df_planilha_aba1['VALOR_CONTRATADO'].astype(float) # Converte a coluna 'VALOR_CONTRATAD
+df_planilha_aba1['VALOR_CONTRATADO'] = df_planilha_aba1['VALOR_CONTRATADO'].round(2) # Converte a coluna 'VALOR_CONTRATAD
+
 df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].replace(np.nan, 0) # Substitui os valores nulos por 0
 df_planilha_aba1['QUANT_EXEC'] = df_planilha_aba1['QUANT_EXEC'].astype(int) # Converte a coluna 'QUANT_EXEC' em inteiro
 
+df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].replace(np.nan, 0) # Substitui os valores nulos por 0
+df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].astype(float) # Converte a coluna 'PERC_CONTRATADO' para string
+df_planilha_aba1['PERC_CONTRATADO'] = df_planilha_aba1['PERC_CONTRATADO'].round(4)  # Converte a coluna 'PERC_CONTRATADO' para string
+
+
 for index, row in df_planilha_aba1.iterrows():
-    if row['PERC_CONTRATADO'] > 4 or row['PERC_CONTRATADO'] < 0:
-        df_planilha_aba1.at[index, 'PERC_CONTRATADO_O'] = 'ERRO_QUANT'
-    else:
-        df_planilha_aba1.at[index, 'PERC_CONTRATADO_O'] = '-'
+    # Verifica a condição para a coluna 'PERC_CONTRATADO'
+    df_planilha_aba1.at[index, 'PERC_CONTRATADO_O'] = 'ERRO_QUANT' if row['PERC_CONTRATADO'] > 4 or row['PERC_CONTRATADO'] < 0 else '-'
+
+    # Verifica a condição para a coluna 'VALOR_PROC' e 'VALOR_CONTRATADO'
+    df_planilha_aba1.at[index, 'VALOR_PROC_O'] = 'ERRO_MONETARIO' if row['VALOR_PROC'] > row['VALOR_CONTRATADO'] else '-'  
 
 quant_plano = df_planilha_aba1['QUANT_EXEC'].sum() # Soma o valor total da coluna 'PERC_CONTRATADO'
 quant_plano = '{0:,}'.format(quant_plano).replace(',','.') #Aqui coloca os pontos
@@ -247,8 +258,8 @@ for indice, linha in df_planilha_aba1.iterrows():
 tempo_final = time.time()
 tempo_total = int(tempo_final - tempo_inicial)
 
-minutos = (tempo_total // 60)*2
-segundos = (tempo_total % 60)*2
+minutos = tempo_total // 60
+segundos = tempo_total % 60
 
 data_hora_atual = datetime.now() # Pega a data e hora atual
 
@@ -308,6 +319,12 @@ if df_planilha_aba1['PERC_CONTRATADO_O'].str.contains('ERRO_QUANT').any():
 else:
     print(f" [OK] - Não existem procedimentos na Fila com mais de 400% de contrato; =====> VERIFICAR COLUNA['PERC_CONTRATADO_0'](S)", file=arquivo)
 
+# erro valor SUS maior que o contratado
+if df_planilha_aba1['VALOR_PROC_O'].str.contains('ERRO_MONETARIO').any():
+    print(f" [ALERTA] - Existe valores de contratado menor que a referente na tabela SUS;=> VERIFICAR COLUNA['VALOR_CONTRATADO'](H)", file=arquivo)
+else:
+    print(f" [OK] - O valores de contratado igual ou superior a tabela SUS; ==============> VERIFICAR COLUNA['VALOR_CONTRATADO'](H)", file=arquivo)
+
 print(f"\n====================================================[ ABA  FILAS ]=====================================================", file=arquivo)
 #Verificar Fila
 if ((quant_fila == 0) or (quant_fila < quant_plano)):
@@ -347,7 +364,7 @@ print(f" VALOR TOTAL DE EXECUÇÃO DO PLANO ==============================> R$ {
 print(f" VALOR TOTAL PACTUADO NA CIB e INFORMANDO NO PLANO =============> R$ {soma_valor_pactuado_formatado}", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.2.15 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.2.16 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
