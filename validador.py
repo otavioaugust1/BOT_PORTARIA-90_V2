@@ -131,10 +131,17 @@ df_sigtap_s.drop_duplicates(subset='CO_PROCEDIMENTO', keep='first', inplace=True
 df_planilha_aba1['PROC_SERVICO'] = df_planilha_aba1['CO_PROCEDIMENTO'].map(df_sigtap_s.set_index('CO_PROCEDIMENTO')['EXIGE_SERVIÇO']) # Adiciona uma nova coluna com a informação de serviço do procedimento
 print(f"[OK] IMPORTAÇÃO DE HABILITAÇÃO E SERVIÇO  ===================================>: {time.strftime('%H:%M:%S')}")
 
-# Verificar se o CNES esta ATIVO:
-df_cnes_habilitacao['CO_CNES'] = df_cnes_habilitacao['CO_CNES'].astype(str) # Converte a coluna 'CNES' para string
-df_cnes_habilitacao2 = df_cnes_habilitacao.loc[df_cnes_habilitacao['CO_MOTIVO_DESAB'] > '0'] # Seleciona apenas os CNES habilitados
-df_planilha_aba1['CNES_ATIVO'] = np.where(df_planilha_aba1['CNES'].isin(df_cnes_habilitacao2['CO_CNES']), 'NÃO', '-') # Adiciona a coluna 'CNES_ATIVO' ao dataframe
+# Verificar se o CNES está ATIVO:
+df_cnes_habilitacao['CO_CNES'] = df_cnes_habilitacao['CO_CNES'].astype(str)  # Converte a coluna 'CO_CNES' para string
+df_cnes_habilitacao2 = df_cnes_habilitacao[df_cnes_habilitacao['CO_MOTIVO_DESAB'] > '0']  # Seleciona apenas os CNES habilitados
+df_cnes_habilitacao2 = df_cnes_habilitacao2.rename(columns={'CO_CNES': 'CNES'})  # Renomeia a coluna 'CO_CNES' para 'CNES'
+
+# Converte a coluna 'CNES' do dataframe df_planilha_aba1 para int (se já não for)
+df_planilha_aba1['CNES'] = df_planilha_aba1['CNES'].astype(str)
+df_cnes_habilitacao2['CNES'] = df_cnes_habilitacao2['CNES'].astype(str)
+
+# Verifica se o CNES está na lista de CNES habilitados e preenche a coluna 'CNES_ATIVO'
+df_planilha_aba1['CNES_ATIVO'] = np.where(df_planilha_aba1['CNES'].isin(df_cnes_habilitacao2['CNES']), 'NÃO', '-')
 print(f"[OK] VERIFICAR CNES ATIVOS  =================================================>: {time.strftime('%H:%M:%S')}")
 
 
@@ -364,7 +371,7 @@ print(f" VALOR TOTAL DE EXECUÇÃO DO PLANO ==============================> R$ {
 print(f" VALOR TOTAL PACTUADO NA CIB e INFORMANDO NO PLANO =============> R$ {soma_valor_pactuado_formatado}", file=arquivo)
 
 
-print(f"\n \n====================================================== VERSÃO 1.2.16 ==================================================", file=arquivo)
+print(f"\n \n====================================================== VERSÃO 1.2.17 ==================================================", file=arquivo)
 
 # Tempo de execução
 print(f" [TEMPO] - Total de execução: ===============================================================> {minutos} minutos e {segundos} segundos", file=arquivo)
